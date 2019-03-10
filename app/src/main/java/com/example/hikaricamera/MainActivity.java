@@ -2,6 +2,7 @@ package com.example.hikaricamera;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -16,6 +17,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -32,15 +34,15 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         Orient.append(Surface.ROTATION_180,270);
         Orient.append(Surface.ROTATION_270,180);
     }
+
     private String camId;
     private CameraDevice camDev;
     private CameraCaptureSession capSes;
@@ -80,9 +83,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onError(@NonNull CameraDevice cameraDevice, int i) {
-            cameraDevice.close();
-            cameraDevice=null;
+        public void onError(@NonNull CameraDevice camDev, int i) {
+            camDev.close();
+            camDev=null;
         }
     };
 
@@ -116,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
         Capture = (Button)findViewById(R.id.Capture);
         Capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -124,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
     private void takePicture() {
         if(camDev==null)
             return;
@@ -140,8 +145,8 @@ public class MainActivity extends AppCompatActivity {
                 wid= picSize[0].getWidth();
                 hei=picSize[0].getHeight();
             }
-            ImageReader reader=ImageReader.newInstance(wid,hei,ImageFormat.JPEG,20);
-            List<Surface> opSur=new ArrayList<>(40);
+            ImageReader reader=ImageReader.newInstance(wid,hei,ImageFormat.JPEG,1);
+            List<Surface> opSur=new ArrayList<>(2);
             opSur.add(reader.getSurface());
             opSur.add(new Surface(ttView.getSurfaceTexture()));
 
@@ -152,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
             int rotate= getWindowManager().getDefaultDisplay().getRotation();
             captureBuild.set(CaptureRequest.JPEG_ORIENTATION,Orient.get(rotate));
 
-            file = new File(Environment.getExternalStorageDirectory()+"/"+ UUID.randomUUID().toString()+".jpg");
+            file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+".jpg");
             ImageReader.OnImageAvailableListener reListener=new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader reader) {
@@ -163,10 +168,7 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes=new byte[Bbuff.capacity()];
                         Bbuff.get(bytes);
                         save(bytes);
-                    }catch (FileNotFoundException e){
-                        e.printStackTrace();
-                    }
-                    catch (IOException e){
+                    }catch (Exception e){
                         e.printStackTrace();
                     }
                     finally{
@@ -180,6 +182,8 @@ public class MainActivity extends AppCompatActivity {
                     try{
                         opStream =new FileOutputStream(file);
                         opStream.write(bytes);
+                    }catch(Exception e) {
+                        e.printStackTrace();
                     }finally {
                         if(opStream!=null)
                             opStream.close();
@@ -191,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     super.onCaptureCompleted(session, request, result);
+                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+file)));
                     Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                     createCameraPreview();
                 }
@@ -210,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             },backHand);
-        }catch (CameraAccessException e) {
+        }catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -341,5 +346,10 @@ public class MainActivity extends AppCompatActivity {
         backThread = new HandlerThread("Camera Background");
         backThread.start();
         backHand= new Handler(backThread.getLooper());
+    }
+    private String currentDateFormat() {
+        SimpleDateFormat myformat=new SimpleDateFormat("YYYY_MM_DD-HH:MM:SS");
+        String time=myformat.format(new Date());
+        return time;
     }
 }
