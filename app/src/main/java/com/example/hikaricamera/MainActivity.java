@@ -27,7 +27,9 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -36,6 +38,8 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -68,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
    // private FloatActionButton Capture;
     //private Button Gallery;
     private TextureView ttView;
-    private String camId;
+    private String camId,pathofimage;
     private CameraDevice camDev;
     private CameraCaptureSession capSes;
     private CaptureRequest.Builder capReqB;
@@ -79,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
     private boolean flashchk;
     private Handler backHand;
     private HandlerThread backThread;
+    FloatingActionButton Capture,Gallery,Edit,addRed,addBlue,addGreen,addGrey;
+    Animation flbopen,flbclose,rotfor,rotback;
+    boolean isOpen=false;
+
 
     CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -129,8 +137,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        FloatingActionButton Capture = findViewById(R.id.Capture);
-        FloatingActionButton Gallery = findViewById(R.id.Gallery);
+        Capture = findViewById(R.id.Capture);
+        Gallery = findViewById(R.id.Gallery);
+        Edit = findViewById(R.id.Edit);
+        addRed = findViewById(R.id.addRed);
+        addBlue = findViewById(R.id.addBlue);
+        addGreen = findViewById(R.id.addGreen);
+        addGrey= findViewById(R.id.addGrey);
+
+        flbopen= AnimationUtils.loadAnimation(this,R.anim.floatb_open);
+        flbclose= AnimationUtils.loadAnimation(this,R.anim.floatb_close);
+
+        rotfor= AnimationUtils.loadAnimation(this,R.anim.rotate_for);
+        rotback= AnimationUtils.loadAnimation(this,R.anim.rotate_back);
+
         Capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -141,8 +161,232 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View arg0) {
                 Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(intent,0);
+                startActivityForResult(intent,10);
                 Toast.makeText(MainActivity.this,"Gallery Opened",Toast.LENGTH_LONG).show();
+            }
+        });
+
+        Edit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                animateFloat();
+                Toast.makeText(MainActivity.this, "Select a Format", Toast.LENGTH_SHORT).show();
+            }
+        });
+        addRed.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
+                myfile.setType("*/*");
+                startActivityForResult(myfile,10);
+                Bitmap rscale = BitmapFactory.decodeFile(pathofimage);
+                int width = rscale.getWidth();
+                int height = rscale.getHeight();
+
+                float bitmapRatio = (float) width / (float) height;
+                if (bitmapRatio > 1) {
+                    width = 1000;
+                    height = (int) (width / bitmapRatio);
+                } else {
+                    height = 1000;
+                    width = (int) (height * bitmapRatio);
+                }
+                rscale = Bitmap.createScaledBitmap(rscale, width, height, true);
+                Bitmap rscalefinal = Bitmap.createBitmap(rscale.getWidth(),rscale.getHeight(),rscale.getConfig());
+                int a,r=0,g=0,b=0,i,j,colorpixel;
+                height=rscale.getHeight();
+                width=rscale.getWidth();
+                for(i=0;i<width;i+=2) {
+                    for (j = 0; j < height; j+=2) {
+                        //Toast.makeText(MainActivity.this, i+" "+j, Toast.LENGTH_SHORT).show();
+                        System.out.println(i+ " "+width+" "+j+" "+height);
+                        colorpixel = rscale.getPixel(i, j);
+                        a = Color.alpha(colorpixel);
+                        r = Color.red(colorpixel);
+                        g = Color.green(colorpixel);
+                        b = Color.blue(colorpixel);
+                        r = g = b = (r + g + b) / 3;
+                        rscalefinal.setPixel(i, j, argb(a, r, 0, 0));
+                    }
+                }
+                Matrix mat = new Matrix();
+                mat.postRotate(90);
+                rscalefinal = Bitmap.createBitmap(rscalefinal, 0, 0, rscalefinal.getWidth(), rscalefinal.getHeight(), mat, true);
+                File gfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GrayScale.jpg");
+                try {
+                    FileOutputStream out = new FileOutputStream(gfile);
+                    rscalefinal.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
+                Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
+                createCameraPreview();
+                animateFloat();
+            }
+        });
+        addBlue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
+                myfile.setType("*/*");
+                startActivityForResult(myfile,10);
+                Bitmap bscale = BitmapFactory.decodeFile(pathofimage);
+                int width = bscale.getWidth();
+                int height = bscale.getHeight();
+
+                float bitmapRatio = (float) width / (float) height;
+                if (bitmapRatio > 1) {
+                    width = 1000;
+                    height = (int) (width / bitmapRatio);
+                } else {
+                    height = 1000;
+                    width = (int) (height * bitmapRatio);
+                }
+                bscale = Bitmap.createScaledBitmap(bscale, width, height, true);
+                Bitmap bscalefinal = Bitmap.createBitmap(bscale.getWidth(),bscale.getHeight(),bscale.getConfig());
+                int a,r=0,g=0,b=0,i,j,colorpixel;
+                height=bscale.getHeight();
+                width=bscale.getWidth();
+                for(i=0;i<width;i+=2) {
+                    for (j = 0; j < height; j+=2) {
+                        //Toast.makeText(MainActivity.this, i+" "+j, Toast.LENGTH_SHORT).show();
+                        System.out.println(i+ " "+width+" "+j+" "+height);
+                        colorpixel = bscale.getPixel(i, j);
+                        a = Color.alpha(colorpixel);
+                        r = Color.red(colorpixel);
+                        g = Color.green(colorpixel);
+                        b = Color.blue(colorpixel);
+                        r=g=b=(r+g+b)/3;
+                        bscalefinal.setPixel(i, j, argb(a, 0, 0, b));
+                    }
+                }
+                Matrix mat = new Matrix();
+                mat.postRotate(90);
+                bscalefinal = Bitmap.createBitmap(bscalefinal, 0, 0, bscalefinal.getWidth(), bscalefinal.getHeight(), mat, true);
+                File gfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GrayScale.jpg");
+                try {
+                    FileOutputStream out = new FileOutputStream(gfile);
+                    bscalefinal.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
+                Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
+                createCameraPreview();
+                animateFloat();
+            }
+        });
+        addGreen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
+                myfile.setType("*/*");
+                startActivityForResult(myfile,10);
+                Bitmap grscale = BitmapFactory.decodeFile(pathofimage);
+                int width = grscale.getWidth();
+                int height = grscale.getHeight();
+
+                float bitmapRatio = (float) width / (float) height;
+                if (bitmapRatio > 1) {
+                    width = 1000;
+                    height = (int) (width / bitmapRatio);
+                } else {
+                    height = 1000;
+                    width = (int) (height * bitmapRatio);
+                }
+                grscale = Bitmap.createScaledBitmap(grscale, width, height, true);
+                Bitmap grscalefinal = Bitmap.createBitmap(grscale.getWidth(),grscale.getHeight(),grscale.getConfig());
+                int a,r=0,g=0,b=0,i,j,colorpixel;
+                height=grscale.getHeight();
+                width=grscale.getWidth();
+                for(i=0;i<width;i+=2) {
+                    for (j = 0; j < height; j+=2) {
+                        //Toast.makeText(MainActivity.this, i+" "+j, Toast.LENGTH_SHORT).show();
+                        System.out.println(i+ " "+width+" "+j+" "+height);
+                        colorpixel = grscale.getPixel(i, j);
+                        a = Color.alpha(colorpixel);
+                        r = Color.red(colorpixel);
+                        g = Color.green(colorpixel);
+                        b = Color.blue(colorpixel);
+                        r = g = b = (r + g + b) / 3;
+                        grscalefinal.setPixel(i, j, argb(a, r, 0, 0));
+                    }
+                }
+                Matrix mat = new Matrix();
+                mat.postRotate(90);
+                grscalefinal = Bitmap.createBitmap(grscalefinal, 0, 0, grscalefinal.getWidth(), grscalefinal.getHeight(), mat, true);
+                File gfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GrayScale.jpg");
+                try {
+                    FileOutputStream out = new FileOutputStream(gfile);
+                    grscalefinal.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
+                Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
+                createCameraPreview();
+                animateFloat();
+            }
+        });
+        addGrey.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
+                myfile.setType("*/*");
+                startActivityForResult(myfile,10);
+                Bitmap gyscale = BitmapFactory.decodeFile(pathofimage);
+                int width = gyscale.getWidth();
+                int height = gyscale.getHeight();
+
+                float bitmapRatio = (float) width / (float) height;
+                if (bitmapRatio > 1) {
+                    width = 1000;
+                    height = (int) (width / bitmapRatio);
+                } else {
+                    height = 1000;
+                    width = (int) (height * bitmapRatio);
+                }
+                gyscale = Bitmap.createScaledBitmap(gyscale, width, height, true);
+                Bitmap gyscalefinal = Bitmap.createBitmap(gyscale.getWidth(),gyscale.getHeight(),gyscale.getConfig());
+                int a,r=0,g=0,b=0,i,j,colorpixel;
+                height=gyscale.getHeight();
+                width=gyscale.getWidth();
+                for(i=0;i<width;i+=2) {
+                    for (j = 0; j < height; j+=2) {
+                        //Toast.makeText(MainActivity.this, i+" "+j, Toast.LENGTH_SHORT).show();
+                        System.out.println(i+ " "+width+" "+j+" "+height);
+                        colorpixel = gyscale.getPixel(i, j);
+                        a = Color.alpha(colorpixel);
+                        r = Color.red(colorpixel);
+                        g = Color.green(colorpixel);
+                        b = Color.blue(colorpixel);
+                        r = g = b = (r + g + b) / 3;
+                        gyscalefinal.setPixel(i, j, argb(a, r, 0, 0));
+                    }
+                }
+                Matrix mat = new Matrix();
+                mat.postRotate(90);
+                gyscalefinal = Bitmap.createBitmap(gyscalefinal, 0, 0, gyscalefinal.getWidth(), gyscalefinal.getHeight(), mat, true);
+                File gfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GrayScale.jpg");
+                try {
+                    FileOutputStream out = new FileOutputStream(gfile);
+                    gyscalefinal.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
+                Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
+                createCameraPreview();
+                animateFloat();
             }
         });
     }
@@ -214,88 +458,6 @@ public class MainActivity extends AppCompatActivity {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
                     super.onCaptureCompleted(session, request, result);
                     sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+file)));
-                    Bitmap grayscale = BitmapFactory.decodeFile(file+"");
-                    int width = grayscale.getWidth();
-                    int height = grayscale.getHeight();
-
-                    float bitmapRatio = (float) width / (float) height;
-                    if (bitmapRatio > 1) {
-                        width = 1000;
-                        height = (int) (width / bitmapRatio);
-                    } else {
-                        height = 1000;
-                        width = (int) (height * bitmapRatio);
-                    }
-                    grayscale = Bitmap.createScaledBitmap(grayscale, width, height, true);
-                    Bitmap grayscalefinal = Bitmap.createBitmap(grayscale.getWidth(),grayscale.getHeight(),grayscale.getConfig());
-                    Bitmap redcolored = Bitmap.createBitmap(grayscale.getWidth(),grayscale.getHeight(),grayscale.getConfig());
-                    Bitmap greencolored = Bitmap.createBitmap(grayscale.getWidth(),grayscale.getHeight(),grayscale.getConfig());
-                    Bitmap bluecolored = Bitmap.createBitmap(grayscale.getWidth(),grayscale.getHeight(),grayscale.getConfig());
-                    int a,r=0,g=0,b=0,i,j,colorpixel;
-                    height=grayscale.getHeight();
-                    width=grayscale.getWidth();
-                    for(i=0;i<width;i+=2) {
-                        for (j = 0; j < height; j+=2) {
-                            //Toast.makeText(MainActivity.this, i+" "+j, Toast.LENGTH_SHORT).show();
-                            System.out.println(i+ " "+width+" "+j+" "+height);
-                            colorpixel = grayscale.getPixel(i, j);
-                            a = Color.alpha(colorpixel);
-                            r = Color.red(colorpixel);
-                            g = Color.green(colorpixel);
-                            b = Color.blue(colorpixel);
-                            r = g = b = (r + g + b) / 3;
-                            grayscalefinal.setPixel(i, j, argb(a, r, g, b));
-                            redcolored.setPixel(i,j,argb(a,r,0,0));
-                            greencolored.setPixel(i,j,argb(a,0,g,0));
-                            bluecolored.setPixel(i,j,argb(a,0,0,b));
-                        }
-                    }
-                    Matrix mat = new Matrix();
-                    mat.postRotate(90);
-                    grayscalefinal = Bitmap.createBitmap(grayscalefinal, 0, 0, grayscalefinal.getWidth(), grayscalefinal.getHeight(), mat, true);
-                    redcolored = Bitmap.createBitmap(redcolored, 0, 0, redcolored.getWidth(), redcolored.getHeight(), mat, true);
-                    greencolored = Bitmap.createBitmap(greencolored, 0, 0, greencolored.getWidth(), greencolored.getHeight(), mat, true);
-                    bluecolored = Bitmap.createBitmap(bluecolored, 0, 0, bluecolored.getWidth(), bluecolored.getHeight(), mat, true);
-                    File gfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GrayScale.jpg");
-                    File rfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"RedColored.jpg");
-                    File grfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"GreenColored.jpg");
-                    File bfile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)+"/Camera/"+currentDateFormat()+"BlueColored.jpg");
-                    try {
-                        FileOutputStream out = new FileOutputStream(gfile);
-                        grayscalefinal.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                        out.flush();
-                        out.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        FileOutputStream out = new FileOutputStream(rfile);
-                        redcolored.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                        out.flush();
-                        out.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        FileOutputStream out = new FileOutputStream(grfile);
-                        greencolored.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                        out.flush();
-                        out.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        FileOutputStream out = new FileOutputStream(bfile);
-                        bluecolored.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                        out.flush();
-                        out.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+rfile)));
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+grfile)));
-                    sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+bfile)));
                     Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                     createCameraPreview();
                 }
@@ -403,6 +565,36 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private void animateFloat()
+    {
+        if(isOpen){
+            Edit.startAnimation(rotfor);
+            addRed.startAnimation(flbclose);
+            addBlue.startAnimation(flbclose);
+            addGreen.startAnimation(flbclose);
+            addGrey.startAnimation(flbclose);
+            addRed.setClickable(false);
+            addBlue.setClickable(false);
+            addGreen.setClickable(false);
+            addGrey.setClickable(false);
+            isOpen= false;
+
+        }
+        else
+        {
+            Edit.startAnimation(rotback);
+            addRed.startAnimation(flbopen);
+            addBlue.startAnimation(flbopen);
+            addGreen.startAnimation(flbopen);
+            addGrey.startAnimation(flbopen);
+            addRed.setClickable(true);
+            addBlue.setClickable(true);
+            addGreen.setClickable(true);
+            addGrey.setClickable(true);
+            isOpen= true;
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(requestCode == camReqPer)
@@ -458,4 +650,13 @@ public class MainActivity extends AppCompatActivity {
         float scalewidth=(float)()
     }*/
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        switch (requestCode){
+            case 10:
+                if(resultCode==RESULT_OK){
+                    pathofimage=data.getData().getPath();
+                }
+        }
+    }
 }
