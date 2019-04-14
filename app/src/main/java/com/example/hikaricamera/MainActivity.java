@@ -176,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
         addRed.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                animateFloat();
                 Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
                 myfile.setType("*/*");
                 startActivityForResult(myfile,10);
@@ -224,12 +225,12 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
                 Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                 createCameraPreview();
-                animateFloat();
             }
         });
         addBlue.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                animateFloat();
                 Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
                 myfile.setType("*/*");
                 startActivityForResult(myfile,10);
@@ -278,12 +279,12 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
                 Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                 createCameraPreview();
-                animateFloat();
             }
         });
         addGreen.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                animateFloat();
                 Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
                 myfile.setType("*/*");
                 startActivityForResult(myfile,10);
@@ -332,12 +333,12 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
                 Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                 createCameraPreview();
-                animateFloat();
             }
         });
         addGrey.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                animateFloat();
                 Intent myfile=new Intent(Intent.ACTION_GET_CONTENT);
                 myfile.setType("*/*");
                 startActivityForResult(myfile,10);
@@ -386,7 +387,6 @@ public class MainActivity extends AppCompatActivity {
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.parse("file://"+gfile)));
                 Toast.makeText(MainActivity.this, "Saved "+file, Toast.LENGTH_SHORT).show();
                 createCameraPreview();
-                animateFloat();
             }
         });
     }
